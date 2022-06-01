@@ -9,9 +9,10 @@ import {
   ScrollView,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { getStatusBarHeight } from "react-native-status-bar-height";
-import { FontAwesome, FontAwesome5 } from "@expo/vector-icons";
+import { FontAwesome, FontAwesome5, AntDesign } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DraggableFlatList, {
   ScaleDecorator,
@@ -27,17 +28,13 @@ const black = "#292f36";
 const gray = "#939597";
 const gripColor = "#6c757d";
 const deleteBtn = "firebrick";
-
-const initialToDos = [
-  { key: "FirstIndexWork", isWorking: true, height: 0 },
-  { key: "FirstIndexPlay", isWorking: false, height: 0 },
-];
+const doneColor = "#ced4da";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [isWorking, setIsWorking] = useState(true);
   const [text, setText] = useState("");
-  const [toDos, setToDos] = useState(initialToDos);
+  const [toDos, setToDos] = useState([]);
   const [scrolled, setScrolled] = useState(false);
 
   const onWork = useCallback(() => setIsWorking(true), [setIsWorking]);
@@ -52,6 +49,10 @@ export default function App() {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     } catch (error) {
       console.error(error);
+      Alert.alert(
+        "오류가 발생하였습니다.\n잠시 후 다시 시도해주세요.",
+        `(${error.message})`
+      );
     }
   };
 
@@ -60,17 +61,14 @@ export default function App() {
       const strToDos = await AsyncStorage.getItem(STORAGE_KEY);
       const arrToDos = JSON.parse(strToDos);
 
-      if (arrToDos.length === 0) {
-        setToDos([...initialToDos, ...arrToDos]);
-        setLoading(false);
-
-        return;
-      }
-
       setToDos(arrToDos);
       setLoading(false);
     } catch (error) {
       console.error(error);
+      Alert.alert(
+        "오류가 발생하였습니다.\n잠시 후 다시 시도해주세요.",
+        `(${error.message})`
+      );
     }
   };
 
@@ -79,7 +77,10 @@ export default function App() {
       return;
     }
 
-    const newToDos = [...toDos, { key: Date.now(), text, isWorking }];
+    const newToDos = [
+      ...toDos,
+      { key: Date.now(), text, isWorking, isDone: false },
+    ];
 
     setToDos(newToDos);
     await saveToDos(newToDos);
@@ -104,7 +105,24 @@ export default function App() {
     loadToDos();
   }, []);
 
-  const renderItem = ({ item, drag, isActive, index }) => {
+  const checkToDo = async (index) => {
+    const newToDos = [...toDos];
+
+    if (!toDos[index].isDone) {
+      const updateToDo = { ...toDos[index], isDone: true };
+      newToDos.splice(index, 1);
+      newToDos.push(updateToDo);
+    } else {
+      const updateToDo = { ...toDos[index], isDone: false };
+      newToDos.splice(index, 1);
+      newToDos.unshift(updateToDo);
+    }
+
+    setToDos(newToDos);
+    await saveToDos(newToDos);
+  };
+
+  const toDoItem = ({ item, drag, isActive, index }) => {
     if (loading) {
       return;
     }
@@ -114,34 +132,58 @@ export default function App() {
         <View
           style={{
             ...styles.toDo,
-            backgroundColor: isActive ? white : black,
+            backgroundColor: item.isDone ? doneColor : black,
           }}
         >
-          <TouchableOpacity
-            style={styles.grip}
-            activeOpacity={0.4}
-            onLongPress={drag}
-            disabled={isActive}
-          >
-            <FontAwesome5 name="grip-lines" size={24} color={gripColor} />
-          </TouchableOpacity>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             pagingEnabled
             bounces={false}
           >
+            <TouchableOpacity
+              style={styles.checkbox}
+              onPress={() => {
+                checkToDo(index);
+              }}
+            >
+              <AntDesign
+                name="checkcircle"
+                size={24}
+                color={white}
+                style={{
+                  backgroundColor: item.isDone ? doneColor : white,
+                  borderRadius: 12,
+                  overflow: "hidden",
+                }}
+              />
+            </TouchableOpacity>
             <View
               style={{
                 ...styles.toDoTextSection,
+                width: item.isDone ? INNER_WIDTH - 80 : INNER_WIDTH - 145,
               }}
             >
               <Text
-                style={{ ...styles.toDoText, color: isActive ? black : white }}
+                style={{
+                  ...styles.toDoText,
+                  color: item.isDone ? gray : white,
+                  textDecorationLine: item.isDone ? "line-through" : "none",
+                }}
               >
                 {item.text}
               </Text>
             </View>
+            {!item.isDone && (
+              <TouchableOpacity
+                style={styles.grip}
+                activeOpacity={0.4}
+                onLongPress={drag}
+                disabled={isActive}
+              >
+                <FontAwesome5 name="grip-lines" size={24} color={gripColor} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.toDoMenuSection}
               activeOpacity={0.8}
@@ -206,7 +248,7 @@ export default function App() {
               saveToDos(data);
             }}
             keyExtractor={(item) => item.key}
-            renderItem={renderItem}
+            renderItem={toDoItem}
           />
         </View>
       )}
@@ -259,29 +301,31 @@ const styles = StyleSheet.create({
     marginTop: 10,
     overflow: "hidden",
   },
-  grip: {
+  checkbox: {
     justifyContent: "center",
     alignItems: "center",
-    paddingLeft: 10,
-    paddingRight: 5,
+    paddingHorizontal: 10,
   },
   toDoTextSection: {
     justifyContent: "center",
     paddingVertical: 15,
     paddingLeft: 5,
-    width: INNER_WIDTH,
-  },
-  toDoMenuSection: {
-    paddingVertical: 15,
-    paddingHorizontal: 15,
-    backgroundColor: deleteBtn,
-    borderTopRightRadius: 15,
-    borderBottomRightRadius: 15,
-    justifyContent: "center",
   },
   toDoText: {
     color: white,
     fontSize: 16,
-    paddingRight: 60,
+  },
+  grip: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  toDoMenuSection: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    backgroundColor: deleteBtn,
+    borderTopRightRadius: 15,
+    borderBottomRightRadius: 15,
+    justifyContent: "center",
   },
 });
