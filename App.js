@@ -18,7 +18,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
-import * as SplashScreen from "expo-splash-screen";
 
 const { width: INNER_WIDTH } = Dimensions.get("window");
 const STATUS_BAR_HEIGHT =
@@ -38,6 +37,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [isWorking, setIsWorking] = useState(true);
   const [text, setText] = useState("");
+  const [editText, setEditText] = useState("");
   const [toDos, setToDos] = useState([]);
   const [doneCount, setDoneCount] = useState({
     work: { done: 0, notDone: 0 },
@@ -49,6 +49,10 @@ export default function App() {
 
   const onChangeText = (value) => {
     setText(value);
+  };
+
+  const onChangeEditText = (value) => {
+    setEditText(value);
   };
 
   const changeDoneCount = (
@@ -228,6 +232,19 @@ export default function App() {
     await saveToDos(newToDos);
   };
 
+  const editToDo = async (index) => {
+    if (editText.length === 0) {
+      return;
+    }
+    const newToDos = [...toDos];
+
+    const updateToDo = { ...toDos[index], text: editText };
+    newToDos.splice(index, 1, updateToDo);
+
+    setToDos(newToDos);
+    await saveToDos(newToDos);
+  };
+
   useEffect(() => {
     const keyboardShow = (e) => {
       setKeyboard([true, e.endCoordinates.height]);
@@ -248,11 +265,7 @@ export default function App() {
   }, []);
 
   const toDoItem = ({ item, drag, isActive, index }) => {
-    const [open, setOpen] = useState(false);
-
-    if (loading) {
-      return;
-    }
+    const [editMode, setEditMode] = useState(false);
 
     return isWorking === item.isWorking ? (
       <ScaleDecorator>
@@ -292,23 +305,53 @@ export default function App() {
                 marginRight: item.isDone ? 20 : 0,
               }}
             >
-              <TouchableOpacity
-                onPress={() => {
-                  setOpen((prev) => !prev);
-                }}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={{
-                    ...styles.toDoText,
-                    color: item.isDone ? gray : white,
-                    textDecorationLine: item.isDone ? "line-through" : "none",
-                    height: open ? "auto" : 19.5,
+              {editMode ? (
+                <TextInput
+                  style={styles.editInput}
+                  value={editText}
+                  onChangeText={onChangeEditText}
+                  autoFocus
+                  onSubmitEditing={() => {
+                    editToDo(index);
+                    setEditMode(false);
                   }}
+                  returnKeyType="done"
+                  onBlur={() => {
+                    editToDo(index);
+                    setEditMode(false);
+                  }}
+                />
+              ) : item.isDone ? (
+                <View>
+                  <Text
+                    style={{
+                      ...styles.toDoText,
+                      color: gray,
+                      textDecorationLine: "line-through",
+                    }}
+                  >
+                    {item.text}
+                  </Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => {
+                    setEditMode(true);
+                    setEditText(item.text);
+                  }}
+                  activeOpacity={0.8}
                 >
-                  {item.text}
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    style={{
+                      ...styles.toDoText,
+                      color: white,
+                      height: isActive ? 19.5 : "auto",
+                    }}
+                  >
+                    {item.text}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
             {!item.isDone && (
               <TouchableOpacity
@@ -373,8 +416,8 @@ export default function App() {
           value={text}
           onChangeText={onChangeText}
           onSubmitEditing={addToDo}
-          style={styles.input}
           returnKeyType="done"
+          style={styles.input}
           placeholderTextColor={gray}
           placeholder={isWorking ? "Add To Work" : "Add To Play"}
         />
@@ -479,6 +522,10 @@ const styles = StyleSheet.create({
     color: white,
     fontSize: 16,
     justifyContent: "center",
+  },
+  editInput: {
+    color: white,
+    fontSize: 16,
   },
   grip: {
     justifyContent: "center",
