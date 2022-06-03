@@ -18,7 +18,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
-import { TransitioningView } from "react-native-reanimated";
 
 const { width: INNER_WIDTH } = Dimensions.get("window");
 const STATUS_BAR_HEIGHT =
@@ -395,16 +394,7 @@ export default function App() {
             </Text>
           </TouchableOpacity>
         </View>
-        {/* <View style={styles.counter}>
-          <Text style={styles.counterText}>
-            Done : {isWorking ? doneCount.work.done : doneCount.play.done}
-          </Text>
-          <Text style={styles.counterText}>
-            Not done :{" "}
-            {isWorking ? doneCount.work.notDone : doneCount.play.notDone}
-          </Text>
-        </View> */}
-        <View style={styles.progress}>
+        <View>
           <View
             style={{
               height: 20,
@@ -490,14 +480,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 10,
-  },
-  counter: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  counterText: {
-    fontSize: 18,
-    fontWeight: "500",
   },
   btnText: {
     color: gray,
