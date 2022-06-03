@@ -18,6 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
+import { TransitioningView } from "react-native-reanimated";
 
 const { width: INNER_WIDTH } = Dimensions.get("window");
 const STATUS_BAR_HEIGHT =
@@ -394,7 +395,7 @@ export default function App() {
             </Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.counter}>
+        {/* <View style={styles.counter}>
           <Text style={styles.counterText}>
             Done : {isWorking ? doneCount.work.done : doneCount.play.done}
           </Text>
@@ -402,6 +403,33 @@ export default function App() {
             Not done :{" "}
             {isWorking ? doneCount.work.notDone : doneCount.play.notDone}
           </Text>
+        </View> */}
+        <View style={styles.progress}>
+          <View
+            style={{
+              height: 20,
+              backgroundColor: doneColor,
+              borderRadius: 15,
+              flexDirection: "row",
+              overflow: "hidden",
+            }}
+          >
+            <View
+              style={{
+                flex: isWorking ? doneCount.work.done : doneCount.play.done,
+                backgroundColor: gripColor,
+                alignItems: "flex-end",
+                justifyContent: "center",
+              }}
+            ></View>
+            <View
+              style={{
+                flex: isWorking
+                  ? doneCount.work.notDone
+                  : doneCount.play.notDone,
+              }}
+            />
+          </View>
         </View>
         <TextInput
           blurOnSubmit={false}
