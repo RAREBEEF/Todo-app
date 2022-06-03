@@ -169,20 +169,12 @@ export default function App() {
     scrollRef.current.scrollToEnd();
   };
 
-  const deleteToDo = async (key) => {
-    const newToDos = [];
+  const deleteToDo = async (index) => {
+    const newToDos = [...toDos];
 
-    let isDone = false;
+    let isDone = newToDos[index].isDone;
 
-    toDos.forEach((toDo) => {
-      if (toDo.key !== key) {
-        newToDos.push(toDo);
-
-        return;
-      }
-
-      isDone = toDo.isDone;
-    });
+    newToDos.splice(index, 1);
 
     setToDos(newToDos);
 
@@ -367,7 +359,7 @@ export default function App() {
               style={styles.toDoMenuSection}
               activeOpacity={0.8}
               onPress={() => {
-                deleteToDo(item.key);
+                deleteToDo(index);
               }}
             >
               <FontAwesome name="trash-o" size={24} color={white} />
